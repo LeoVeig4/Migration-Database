@@ -21,16 +21,17 @@ async function configureMovies(jsonObj) {
                 .replaceAll(' None', ' "  "')
                 .replaceAll(`'}`, '"}')) : ""
             //if (collection !== "") console.log(collection)
+            if (jsonObj[i].runtime === "") jsonObj[i].runtime = 0
             movies_data.push({
                 idFilme: last_id_movies++,
                 iddataset: jsonObj[i].id,
                 collection_id: collection?.id,
                 nome_da_colecao: collection?.name,
-                titulo: jsonObj[i].title,
+                titulo: jsonObj[i].title.replaceAll(`"`, `'`),
                 ano: jsonObj[i].release_date,
                 custo: jsonObj[i].budget,
                 original_language: jsonObj[i].original_language,
-                resumo: jsonObj[i].overview,
+                resumo: jsonObj[i].overview.replaceAll(`"`, `'`),
                 popularidade: jsonObj[i].popularity,
                 dataDeLancamento: jsonObj[i].release_date,
                 receitaEmDolar: jsonObj[i].revenue,
@@ -142,10 +143,14 @@ async function configureCrew(credit_data) {
                     func: credit_data[i].crew[j].job
                 })
             } else {
+                let gender = ""
+                if (credit_data[i].crew[j].gender == 0) gender = "F"
+                if (credit_data[i].crew[j].gender == 1) gender = "M"
+                if (credit_data[i].crew[j].gender == 2) gender = "N"
                 crew.push({
                     idCrew: last_id_func_crew++,
                     name: credit_data[i].crew[j].name,
-                    gender: credit_data[i].crew[j].gender
+                    gender: gender
                 })
                 func_crew.push({
                     idCrew: last_id_func_crew - 1,
@@ -173,10 +178,14 @@ async function configureAtor(credit_data) {
                     played: credit_data[i].cast[j].character
                 })
             } else {
+                let gender = ""
+                if (credit_data[i].cast[j].gender == 0) gender = "F"
+                if (credit_data[i].cast[j].gender == 1) gender = "M"
+                if (credit_data[i].cast[j].gender == 2) gender = "N"
                 ator.push({
                     idAtor: last_id_ator++,
                     name: credit_data[i].cast[j].name,
-                    gender: credit_data[i].cast[j].gender
+                    gender: gender
                 })
                 elenco.push({
                     idAtor: last_id_ator - 1,
@@ -190,11 +199,13 @@ async function configureAtor(credit_data) {
 }
 
 async function CreateAtorMigration(ator) {
-    let string = ""
+    let string = "use movies_new;\n"
+    string += "INSERT IGNORE INTO ator (idAtor, nome, sexo) VALUES \n"
     for (let i = 0; i < ator.length; i++) {
-        string += `insert into ator values (${ator[i].idAtor}, "${ator[i].name}", "${ator[i].gender}")\n`
+        string += `(${ator[i].idAtor}, "${ator[i].name}", "${ator[i].gender}"),\n`
     }
-    fs.writeFile('ator.txt', string, (err) => {
+    const newstring = string.slice(0, -2) + ";"
+    fs.writeFile('ator.sql', newstring, (err) => {
         if (err) {
             console.error(err);
             return;
@@ -204,11 +215,14 @@ async function CreateAtorMigration(ator) {
 
 }
 async function CreateCrewMigration(crew) {
-    let string = ""
+    let string = "use movies_new;\n"
+    string += "INSERT IGNORE INTO equipe (idEquipe, nome, sexo) VALUES \n"
     for (let i = 0; i < crew.length; i++) {
-        string += `inset into equipe values (${crew[i].idCrew}, "${crew[i].name}", ${crew[i].gender})\n`
+        string += `(${crew[i].idCrew}, "${crew[i].name}", "${crew[i].gender}"),\n`
     }
-    fs.writeFile('equipe.txt', string, (err) => {
+    string.replaceAll(`"undefined"`, `NULL`)
+    const newstring = string.slice(0, -2) + ";"
+    fs.writeFile('equipe.sql', newstring, (err) => {
         if (err) {
             console.error(err);
             return;
@@ -218,11 +232,13 @@ async function CreateCrewMigration(crew) {
 }
 
 async function CreateFilmeMigration(movies_data) {
-    let string = ""
+    let string = "use movies_new;\n"
+    string += "INSERT IGNORE INTO filme (idFilme, titulo, custo, lingua_original, resumo, popularidade, lancamento, receita, duracao, media_de_votos, total_votos, colecao) VALUES \n"
     for (let i = 0; i < movies_data.length; i++) {
-        string += `ìnsert into filme values (${movies_data[i].idFilme}, "${movies_data[i].titulo}", ${movies_data[i].custo}, "${movies_data[i].original_language}", "${movies_data[i].resumo}", ${movies_data[i].popularidade}, "${movies_data[i].dataDeLancamento}", ${movies_data[i].receitaEmDolar}, ${movies_data[i].duracao}, ${movies_data[i].mediaDeVotos}, ${movies_data[i].totalDeVotos}, "${movies_data[i].nome_da_colecao}")\n`
+        string += `(${movies_data[i].idFilme}, "${movies_data[i].titulo}", ${movies_data[i].custo}, "${movies_data[i].original_language}", "${movies_data[i].resumo}", ${movies_data[i].popularidade}, "${movies_data[i].dataDeLancamento}", ${movies_data[i].receitaEmDolar}, ${movies_data[i].duracao}, ${movies_data[i].mediaDeVotos}, ${movies_data[i].totalDeVotos}, "${movies_data[i].nome_da_colecao}"),\n`
     }
-    fs.writeFile('filme.txt', string, (err) => {
+    let newstring = string.replaceAll(`"undefined"`, `NULL`).slice(0, -2) + ";"
+    fs.writeFile('filme.sql', newstring, (err) => {
         if (err) {
             console.error(err);
             return;
@@ -232,11 +248,13 @@ async function CreateFilmeMigration(movies_data) {
 }
 
 async function CreateGeneroMigration(genres_data) {
-    let string = ""
+    let string = "use movies_new;\n"
+    string += "INSERT IGNORE INTO categoria (idGenero, nome) VALUES \n"
     for (let i = 0; i < genres_data.length; i++) {
-        string += `insert into genero values (${genres_data[i].idGenero}, "${genres_data[i].name}")\n`
+        string += `(${genres_data[i].idGenero}, "${genres_data[i].name}"),\n`
     }
-    fs.writeFile('categoria.txt', string, (err) => {
+    string.replaceAll(`"undefined"`, `NULL`)
+    fs.writeFile('categoria.sql', string.slice(0, -2) + ";", (err) => {
         if (err) {
             console.error(err);
             return;
@@ -246,11 +264,13 @@ async function CreateGeneroMigration(genres_data) {
 }
 
 async function CreateCategoriaFilmeMigration(genresMovies_data) {
-    let string = ""
+    let string = "use movies_new;\n"
+    string += "INSERT IGNORE INTO categoria_filme (idFilme, idGenero) VALUES \n"
     for (let i = 0; i < genresMovies_data.length; i++) {
-        string += `insert into categoria_filme values (${genresMovies_data[i].idFilme}, ${genresMovies_data[i].idGenero})\n`
+        string += `(${genresMovies_data[i].idFilme}, ${genresMovies_data[i].idGenero}),\n`
     }
-    fs.writeFile('categoria_filme.txt', string, (err) => {
+    string.replaceAll(`"undefined"`, `NULL`)
+    fs.writeFile('categoria_filme.sql', string.slice(0, -2) + ";", (err) => {
         if (err) {
             console.error(err);
             return;
@@ -260,11 +280,14 @@ async function CreateCategoriaFilmeMigration(genresMovies_data) {
 }
 
 async function CreateFuncaoEquipeMigration(func_crew) {
-    let string = ""
+    let string = "use movies_new;\n"
+    string += "INSERT IGNORE INTO funcao_equipe (idEquipe, idFilme, funcao) VALUES \n"
     for (let i = 0; i < func_crew.length; i++) {
-        string += `insert into funcao_equipe values (${func_crew[i].idCrew}, ${func_crew[i].idFilme}, "${func_crew[i].func}")\n`
+        string += `(${func_crew[i].idCrew}, ${func_crew[i].idFilme}, "${func_crew[i].func}"),\n`
     }
-    fs.writeFile('funcao_equipe.txt', string, (err) => {
+    string.replaceAll(`"undefined"`, `NULL`)
+    const newstring = string.slice(0, -2) + ";"
+    fs.writeFile('funcao_equipe.sql', newstring, (err) => {
         if (err) {
             console.error(err);
             return;
@@ -274,11 +297,14 @@ async function CreateFuncaoEquipeMigration(func_crew) {
 }
 
 async function CreateElencoMigration(elenco) {
-    let string = ""
+    let string = "use movies_new;\n"
+    string += "INSERT IGNORE INTO elenco (idFilme, idAtor, personagem) VALUES \n"
     for (let i = 0; i < elenco.length; i++) {
-        string += `insert into elenco values (${elenco[i].idFilme}, ${elenco[i].idAtor}, "${elenco[i].played}")\n`
+        string += `(${elenco[i].idFilme}, ${elenco[i].idAtor}, "${elenco[i].played}"),\n`
     }
-    fs.writeFile('elenco.txt', string, (err) => {
+    string.replaceAll(`"undefined"`, `NULL`)
+    const newstring = string.slice(0, -2) + ";"
+    fs.writeFile('elenco.sql', newstring, (err) => {
         if (err) {
             console.error(err);
             return;
